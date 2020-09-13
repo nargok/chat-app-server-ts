@@ -90,6 +90,56 @@ io.sockets.on(Events.CONNECTION, (socket: socketio.Socket) => {
 
     io.emit(Events.CONVERSATION, result);
   });
+
+  // チャットルーム一覧の取得
+  socket.on(Events.GET_ROOM_LIST, () => {
+    const result = {
+      tyep: Events.GET_ROOM_LIST,
+      rooms,
+    };
+    io.emit(Events.GET_ROOM_LIST, result);
+  });
+
+  // 現在のチャットルーム情報取得
+  socket.on(Events.GET_CURRENT_ROOM, (date: Types.GET_CURRENT_ROOM) => {
+    const currentRoom = rooms.filter((d) => d.id === data.roomId);
+
+    if (currentRoom.length === 1) {
+      const result: Types.CurrrrentRoomResult = {
+        type: Events.GET_CURRENT_ROOM,
+        roomId: currentRoom[0].id,
+        roomName: currentRoom[0].name,
+        users: currentRoom[0].users,
+        logs: currentRoom[0].logs,
+      };
+      io.emit(Events.GET_CURRENT_ROOM, result);
+    }
+  });
+
+  socket.on(Events.LEAVE_ROOM, () => {
+    if (currentRoomId) {
+      // 接続が切れる際にルームからユーザーを削除する
+      outer: for (const room of rooms) {
+        if (room.id === currentRoomId) {
+          for (let i = 0; i < room.users.length; i++) {
+            if (room.users[i].sockeId === socket.id) {
+              room.users.splice(i, 1);
+              socket.leave(currentRoomId);
+              break outer;
+            }
+          }
+        }
+      }
+
+      const result: Types.DisconnectResult = {
+        type: Events.LEAVE_ROOM,
+        roomId: currentRoomId,
+        sockeId: socket.id,
+      };
+
+      io.emit(Events.LEAVE_ROOM, result);
+    }
+  });
 });
 
 server.listen(3333, () => console.log("listening on *:3333"));
