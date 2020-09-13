@@ -101,7 +101,7 @@ io.sockets.on(Events.CONNECTION, (socket: socketio.Socket) => {
   });
 
   // 現在のチャットルーム情報取得
-  socket.on(Events.GET_CURRENT_ROOM, (date: Types.GET_CURRENT_ROOM) => {
+  socket.on(Events.GET_CURRENT_ROOM, (data: Types.CurrentRoom) => {
     const currentRoom = rooms.filter((d) => d.id === data.roomId);
 
     if (currentRoom.length === 1) {
@@ -138,6 +138,31 @@ io.sockets.on(Events.CONNECTION, (socket: socketio.Socket) => {
       };
 
       io.emit(Events.LEAVE_ROOM, result);
+    }
+  });
+
+  // 接続切断
+  socket.on(Events.DISCONNECT, () => {
+    if (currentRoomId) {
+      outer: for (const room of rooms) {
+        if (room.id === currentRoomId) {
+          for (let i = 0; i < room.users.length; i++) {
+            if (room.users[i].sockeId === socket.id) {
+              room.users.splice(i, 1);
+              socket.leave(currentRoomId);
+              break outer;
+            }
+          }
+        }
+      }
+
+      const result: Types.DisconnectResult = {
+        type: Events.DISCONNECT,
+        roomId: currentRoomId,
+        sockeId: socket.id,
+      };
+
+      io.emit(Events.DISCONNECT, result);
     }
   });
 });
