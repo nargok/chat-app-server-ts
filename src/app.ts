@@ -1,10 +1,40 @@
 import http from "http";
 import socketio from "socket.io";
+
+import rooms, { Room } from "./rooms";
+import * as Types from "./types";
 import * as Events from "./events";
+import { formatDate } from "./utils";
 
 const server: http.Server = http.createServer();
 const io: socketio.Server = socketio(server);
 
-io.sockets.on(Events.CONNECTION, (socket: socketio.Socket) => {});
+let currentRoomIdCounter: number = 1;
+const ROOM_NAME_PREFIX = "ROOM_";
+
+io.sockets.on(Events.CONNECTION, (socket: socketio.Socket) => {
+  let currentRoomId: string;
+
+  //　チャットルーム作成
+  socket.on(Events.CREATE_ROOM, (data: Types.CreateRoom) => {
+    const roomId: string = ROOM_NAME_PREFIX + currentRoomIdCounter++;
+
+    const room: Room = {
+      id: roomId,
+      name: data.roomName,
+      users: [],
+      logs: [],
+    };
+
+    rooms.push(room);
+
+    const result: Types.CreateRoomResult = {
+      type: Events.CREATE_ROOM,
+      rooms,
+    };
+
+    io.emit(Events.CREATE_ROOM, result);
+  });
+});
 
 server.listen(3333, () => console.log("listening on *:3333"));
