@@ -61,6 +61,35 @@ io.sockets.on(Events.CONNECTION, (socket: socketio.Socket) => {
       }
     }
   });
+
+  // 会話
+  socket.on(Events.CONNECTION, (data: Types.Conversation) => {
+    const roomId = data.roomId;
+    const message = data.message;
+    const currentDate: string = formatDate("yyyy/MM/dd HH:mm:ss");
+
+    for (let room of rooms) {
+      if (room.id === roomId) {
+        room.logs.push({
+          logId: room.logs.length + 1,
+          userName: data.userName,
+          time: currentDate,
+          message,
+        });
+        break;
+      }
+    }
+
+    const result: Types.ConversationResult = {
+      type: Events.CONVERSATION,
+      roomId,
+      userName: data.userName,
+      time: currentDate,
+      message,
+    };
+
+    io.emit(Events.CONVERSATION, result);
+  });
 });
 
 server.listen(3333, () => console.log("listening on *:3333"));
