@@ -35,6 +35,32 @@ io.sockets.on(Events.CONNECTION, (socket: socketio.Socket) => {
 
     io.emit(Events.CREATE_ROOM, result);
   });
+
+  // チャットルーム入室
+  socket.on(Events.JOIN_ROOM, (data: Types.JoinRoom) => {
+    const roomId = data.roomId;
+    currentRoomId = roomId;
+
+    for (const room of rooms) {
+      if (room.id === roomId) {
+        room.users.push({
+          sockeId: socket.id,
+          name: data.userName,
+        });
+        socket.join(room.id);
+
+        const result: Types.JoinRoomResult = {
+          type: Events.JOIN_ROOM,
+          roomId: roomId,
+          userName: data.userName,
+          users: room.users,
+        };
+
+        io.emit(Events.JOIN_ROOM, result);
+        break;
+      }
+    }
+  });
 });
 
 server.listen(3333, () => console.log("listening on *:3333"));
